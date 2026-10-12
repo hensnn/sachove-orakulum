@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ff4fa3">
+<title>Šachové Orákulum</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bungee+Shade&family=Bungee&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#111;
+  --paper:#fff7e0;
+  --pink:#ff4fa3;
+  --lime:#c6ff3d;
+  --sky:#5ee0ff;
+  --sun:#ffd23d;
+  --vio:#9b5cff;
+  --shadow:6px 6px 0 var(--ink);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{
+  font-family:'Space Grotesk',system-ui,sans-serif;
+  color:var(--ink);
+  background:var(--sun);
+  min-height:100vh;
+  overflow-x:hidden;
+  padding-bottom:calc(110px + env(safe-area-inset-bottom));
+}
+/* tančící šachovnice v pozadí */
+.bg{
+  position:fixed;inset:-50%;z-index:-2;
+  background:
+    conic-gradient(var(--pink) 25%,var(--sun) 0 50%,var(--pink) 0 75%,var(--sun) 0) 0 0/90px 90px;
+  transform:rotate(-12deg);
+  animation:drift 40s linear infinite;
+  opacity:.55;
+}
+@keyframes drift{to{background-position:900px 900px}}
+.floaters{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.floaters span{position:absolute;font-size:60px;opacity:.35;animation:float 14s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-40px) rotate(25deg) scale(1.2)}}
+
+header{padding:22px 16px 6px;text-align:center}
+h1{
+  font-family:'Bungee Shade',cursive;font-weight:400;
+  font-size:clamp(34px,11vw,64px);line-height:.95;margin:0;
+  transform:rotate(-3deg);
+  text-shadow:4px 4px 0 var(--sky);
+}
+.motto{
+  display:inline-block;margin-top:10px;padding:6px 12px;
+  background:var(--ink);color:var(--lime);font-weight:700;
+  transform:rotate(2deg);border-radius:4px;font-size:15px;
+}
+main{max-width:640px;margin:0 auto;padding:12px 16px}
+.card{
+  background:var(--paper);border:4px solid var(--ink);border-radius:22px;
+  box-shadow:var(--shadow);padding:18px;margin:18px 0;
+}
+.card:nth-child(odd){transform:rotate(-.8deg)}
+.card:nth-child(even){transform:rotate(.7deg)}
+h2{font-family:'Bungee',cursive;font-weight:400;font-size:24px;margin:0 0 12px}
+h3{font-family:'Bungee',cursive;font-weight:400;font-size:18px;margin:16px 0 8px}
+
+.btn{
+  font-family:'Bungee',cursive;font-size:20px;
+  width:100%;min-height:72px;padding:14px;
+  border:4px solid var(--ink);border-radius:18px;
+  background:var(--lime);color:var(--ink);
+  box-shadow:var(--shadow);cursor:pointer;
+  transition:transform .08s, box-shadow .08s;
+}
+.btn:active{transform:translate(5px,5px) rotate(-1deg);box-shadow:1px 1px 0 var(--ink)}
+.btn.pink{background:var(--pink)}
+.btn.sky{background:var(--sky)}
+.btn.vio{background:var(--vio);color:#fff}
+.btn.small{min-height:54px;font-size:16px;width:auto;padding:10px 16px}
+.btn.on{background:var(--ink);color:var(--lime);transform:rotate(-2deg) scale(1.03)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px}
+.pchip{
+  border:4px solid var(--ink);border-radius:20px;background:#fff;
+  padding:10px 6px;text-align:center;cursor:pointer;box-shadow:4px 4px 0 var(--ink);
+  font-weight:700;font-size:15px;word-break:break-word;
+  transition:transform .12s;
+}
+.pchip .ico{font-size:46px;display:block;line-height:1.1}
+.pchip.sel{transform:rotate(-6deg) scale(1.08);box-shadow:0 0 0 5px var(--ink),8px 8px 0 var(--vio)}
+.pchip.dis{opacity:.25;pointer-events:none}
+.vs{
+  font-family:'Bungee Shade',cursive;font-size:56px;text-align:center;margin:8px 0;
+  animation:wob 2.4s ease-in-out infinite;
+}
+@keyframes wob{50%{transform:rotate(8deg) scale(1.15)}}
+.results{display:grid;gap:12px}
+input,select{
+  font:inherit;font-size:20px;width:100%;min-height:60px;padding:12px 14px;
+  border:4px solid var(--ink);border-radius:16px;background:#fff;color:var(--ink);
+}
+label{font-weight:700;display:block;margin:10px 0 6px}
+.row{display:flex;gap:10px;align-items:center}
+.row>*{flex:1}
+
+/* žebříček */
+.lb{list-style:none;margin:0;padding:0}
+.lb li{
+  display:flex;align-items:center;gap:12px;
+  border:4px solid var(--ink);border-radius:20px;background:#fff;
+  padding:12px;margin-bottom:12px;box-shadow:4px 4px 0 var(--ink);
+}
+.lb li:nth-child(1){background:var(--sun);transform:rotate(-1.5deg) scale(1.03)}
+.lb li:nth-child(2){background:#e6e6ff}
+.lb li:nth-child(3){background:#ffd9b8}
+.rank{font-family:'Bungee',cursive;font-size:28px;width:44px;text-align:center}
+.lb .ico{font-size:44px;width:62px;height:62px;display:grid;place-items:center;border-radius:50%;border:4px solid var(--ink)}
+.lb .info{flex:1;min-width:0}
+.lb .name{font-weight:700;font-size:20px;overflow:hidden;text-overflow:ellipsis}
+.lb .wdl{font-size:14px;opacity:.8}
+.pts{font-family:'Bungee',cursive;font-size:24px;text-align:right}
+.pts small{display:block;font-family:'Space Grotesk';font-size:12px}
+
+.duel{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  border:4px solid var(--ink);border-radius:20px;background:#fff;padding:12px;margin-bottom:12px;box-shadow:4px 4px 0 var(--ink)}
+.duel .side{text-align:center;flex:1;min-width:0}
+.duel .side .ico{font-size:40px}
+.duel .side .nm{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.duel .score{font-family:'Bungee',cursive;font-size:26px;white-space:nowrap}
+.duel .sub{font-size:12px;text-align:center}
+
+.hist{border:4px solid var(--ink);border-radius:18px;background:#fff;padding:12px;margin-bottom:12px;display:flex;gap:10px;align-items:center}
+.hist .txt{flex:1;font-size:16px}
+.hist .when{font-size:13px;opacity:.7}
+.del{border:3px solid var(--ink);background:var(--pink);border-radius:14px;font-size:24px;min-width:56px;min-height:56px;cursor:pointer}
+
+.icons{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:8px}
+.icons button{font-size:32px;min-height:56px;border:3px solid var(--ink);border-radius:14px;background:#fff;cursor:pointer}
+.icons button.sel{background:var(--ink);transform:rotate(-8deg) scale(1.1)}
+.colors{display:flex;flex-wrap:wrap;gap:10px}
+.colors button{width:52px;height:52px;border-radius:50%;border:4px solid var(--ink);cursor:pointer}
+.colors button.sel{box-shadow:0 0 0 4px #fff,0 0 0 8px var(--ink)}
+
+nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:10;
+  display:grid;grid-template-columns:repeat(5,1fr);gap:6px;
+  padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  background:var(--ink);
+}
+nav button{
+  font-family:'Bungee',cursive;font-size:11px;color:var(--ink);
+  background:var(--paper);border:3px solid var(--paper);border-radius:16px;
+  min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;
+}
+nav button b{font-size:30px;font-family:system-ui}
+nav button.on{background:var(--lime);transform:translateY(-6px) rotate(-3deg)}
+.page{display:none}
+.page.on{display:block;animation:pop .35s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{from{transform:scale(.85) rotate(-4deg);opacity:0}}
+.empty{text-align:center;font-size:18px;padding:20px;font-weight:700}
+.empty .big{font-size:80px;display:block}
+
+.sync{
+  margin-top:10px;font:700 14px 'Space Grotesk',sans-serif;color:var(--ink);
+  background:#fff;border:3px solid var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer;
+}
+.sync.err{background:var(--pink)}
+#save:disabled{opacity:.5}
+#toast{
+  position:fixed;left:50%;top:20px;z-index:50;
+  transform:translateX(-50%) translateY(-200%) rotate(-3deg);
+  background:var(--ink);color:var(--lime);font-family:'Bungee',cursive;
+  padding:16px 20px;border-radius:16px;font-size:16px;max-width:90vw;text-align:center;
+  transition:transform .3s cubic-bezier(.3,1.6,.5,1);
+}
+#toast.on{transform:translateX(-50%) translateY(0) rotate(-3deg)}
+.boom{position:fixed;z-index:60;font-size:40px;pointer-events:none;animation:boom 1.3s ease-out forwards}
+@keyframes boom{to{transform:translate(var(--x),var(--y)) rotate(var(--r));opacity:0}}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="floaters" id="floaters"></div>
+
+<header>
+  <h1>ŠACHOVÉ<br>ORÁKULUM</h1>
+  <div class="motto" id="motto">Kůň se dívá. Kůň ví.</div><br>
+  <button class="sync" id="sync" aria-label="Obnovit">⚪ načítám…</button>
+</header>
+
+<main>
+  <!-- ===== HRA ===== -->
+  <section class="page on" id="p-hra">
+    <div class="card">
+      <h2>♔ Bílý</h2>
+      <div class="grid" id="pickW"></div>
+      <div class="vs">VS</div>
+      <h2>♚ Černý</h2>
+      <div class="grid" id="pickB"></div>
+    </div>
+    <div class="card">
+      <h2>⚖️ Verdikt vesmíru</h2>
+      <div class="results">
+        <button class="btn" data-res="w" id="rw">🏳️ Vyhrál bílý</button>
+        <button class="btn sky" data-res="d" id="rd">🤝 Remíza</button>
+        <button class="btn pink" data-res="b" id="rb">🏴 Vyhrál černý</button>
+      </div>
+      <label for="when">🕰️ Kdy se to stalo</label>
+      <input type="datetime-local" id="when">
+      <div style="height:16px"></div>
+      <button class="btn vio" id="save">✍️ Zapsat do věčnosti</button>
+    </div>
+  </section>
+
+  <!-- ===== ŽEBŘÍČEK ===== -->
+  <section class="page" id="p-zeb">
+    <div class="card">
+      <h2>🏆 Žebříček slávy</h2>
+      <ul class="lb" id="lb"></ul>
+    </div>
+  </section>
+
+  <!-- ===== DUELY ===== -->
+  <section class="page" id="p-duel">
+    <div class="card">
+      <h2>⚔️ Vzájemné účty</h2>
+      <p style="margin-top:0">Kdo komu kolik dluží v kosmickém účetnictví.</p>
+      <div id="duels"></div>
+    </div>
+  </section>
+
+  <!-- ===== HISTORIE ===== -->
+  <section class="page" id="p-hist">
+    <div class="card">
+      <h2>📜 Kronika</h2>
+      <div id="hist"></div>
+    </div>
+  </section>
+
+  <!-- ===== NASTAVENÍ ===== -->
+  <section class="page" id="p-set">
+    <div class="card">
+      <h2>💰 Sázka</h2>
+      <label for="sStake">Sázka za partii</label>
+      <input type="number" inputmode="numeric" id="sStake">
+      <p style="font-size:14px">Poražený platí vítězi tuto částku, při remíze se nic nepřesouvá. Změna se přepočítá zpětně pro všechny partie.</p>
+    </div>
+
+    <div class="card">
+      <h2 id="formTitle">🧙 Nový hráč</h2>
+      <label for="pName">Jméno</label>
+      <input id="pName" maxlength="24" placeholder="např. Velkovévoda Brambora">
+      <label>Ikona</label>
+      <div class="icons" id="iconPick"></div>
+      <label>Barva aury</label>
+      <div class="colors" id="colorPick"></div>
+      <div style="height:16px"></div>
+      <button class="btn" id="pSave">➕ Stvořit hráče</button>
+      <div style="height:10px"></div>
+      <button class="btn sky small" id="pCancel" style="display:none;width:100%">Zrušit úpravu</button>
+      <h3>Existující bytosti</h3>
+      <div id="plist"></div>
+    </div>
+
+    <div class="card">
+      <h2>🔒 Heslo pro zápis</h2>
+      <p style="margin-top:0;font-size:14px">Prohlížet může každý. Zapisovat jen ten, kdo zná heslo (nastavuje se v api.php na serveru). Tento telefon si ho zapamatuje.</p>
+      <input type="password" id="pinIn" placeholder="heslo" autocomplete="off">
+      <div style="height:12px"></div>
+      <button class="btn sky" id="pinSave">🗝️ Uložit heslo</button>
+    </div>
+
+    <div class="card">
+      <h2>💾 Záloha</h2>
+      <p style="margin-top:0;font-size:14px">Data jsou sdílená na serveru a vidí je všichni. Export si stáhne zálohu, import nahradí data na serveru.</p>
+      <div class="results">
+        <button class="btn sky" id="exp">⬇️ Exportovat</button>
+        <button class="btn" id="imp">⬆️ Importovat</button>
+        <input type="file" id="impFile" accept="application/json,.json" style="display:none">
+        <button class="btn pink" id="wipe">💣 Smazat vše</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav id="nav">
+  <button data-p="hra" class="on"><b>♞</b>Hra</button>
+  <button data-p="zeb"><b>🏆</b>Žebříček</button>
+  <button data-p="duel"><b>⚔️</b>Duely</button>
+  <button data-p="hist"><b>📜</b>Kronika</button>
+  <button data-p="set"><b>⚙️</b>Nastavení</button>
+</nav>
+<div id="toast"></div>
+
+<script>
+// ====== NASTAVENÍ ÚLOŽIŠTĚ ======
+// Supabase (pro GitHub Pages): vyplň URL projektu a veřejný klíč (anon / publishable).
+// Když zůstanou prázdné, stránka použije api.php na vlastním serveru (Caddy).
+const SUPABASE_URL = '';
+const SUPABASE_KEY = '';
+const API = 'api.php';                       // sdílené úložiště na serveru
+const KEY_CACHE = 'sachove-orakulum-cache';  // poslední stažená data (pro rychlé zobrazení)
+const KEY_PIN = 'sachove-orakulum-pin';
+const KEY_OLD = 'sachove-orakulum-v1';       // data ze staré verze (jen v telefonu)
+const DEF = { settings:{ stake:100 }, players:[], games:[] };
+const ICONS = ['♔','♕','♖','♗','♘','♙','🦄','🐸','🦖','🐙','🦆','🥔','🧀','🎩','👑','🦉','🐌','🌵','🍄','🤖','👽','🧙','🐉','🦩','🍕','🔥','💀','🐱','🐶','🦔','🐝','🦀','🥨','🍌','🧠','👁️','🪐','🗿','🧦','🫖'];
+const COLORS = ['#ff4fa3','#c6ff3d','#5ee0ff','#ffd23d','#9b5cff','#ff7a3d','#3dffb0','#ffffff'];
+const MOTTA = [
+  'Kůň se dívá. Kůň ví.',
+  'Pěšec dnes, král zítra, brambora navždy.',
+  'Střelec chodí jen šikmo. Jako život.',
+  'Remíza je výhra pro dva poražené.',
+  'Věž nemá dveře. Přemýšlej o tom.',
+  'Každá partie je malá apokalypsa.',
+  'Dáma vládne. Král se schovává. Klasika.',
+  'Šach mat je jen začátek dalšího čaje.'
+];
+const WIN_TOAST = ['Vesmír to zaznamenal ✨','Kůň souhlasí 🐴','Zapsáno inkoustem z chobotnice 🐙','Body letí na oběžnou dráhu 🚀','Brambora hanby se otřásla 🥔'];
+
+let S = load();
+let selW = null, selB = null, selRes = null;
+let edit = null, fIcon = ICONS[0], fColor = COLORS[0];
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY_CACHE);
+    if(raw){
+      const d = JSON.parse(raw);
+      return { settings:normSettings(d.settings), players:d.players||[], games:d.games||[] };
+    }
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DEF));
+}
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function normSettings(s){
+  s = s || {};
+  const stake = s.stake != null ? s.stake : (s.win != null ? s.win : DEF.settings.stake);
+  return { stake: Number(stake) || 0 };
+}
+/* ---------- server ---------- */
+let busy = false;
+function setSync(state){
+  const el = document.getElementById('sync'); if(!el) return;
+  el.className = 'sync ' + state;
+  el.textContent = { ok:'🟢 sdíleno · ťukni pro obnovení', busy:'🟡 synchronizuji…', err:'🔴 server nedostupný · zkusit znovu' }[state];
+}
+function accept(d){
+  if(!d || !Array.isArray(d.players) || !Array.isArray(d.games)) return;
+  S = { settings:normSettings(d.settings), players:d.players, games:d.games };
+  lsSet(KEY_CACHE, JSON.stringify(S));
+  const ok = id => S.players.some(p => p.id === id);
+  if(selW && !ok(selW)) selW = null;
+  if(selB && !ok(selB)) selB = null;
+  if(edit && !ok(edit)) edit = null;
+  renderAll();
+}
+/* --- dvě možná úložiště: Supabase nebo api.php; obě vrací {status, json} --- */
+let sbClient = null;
+function sb(){
+  if(!sbClient) sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:false } });
+  return sbClient;
+}
+async function backendGet(){
+  if(SUPABASE_URL){
+    const { data, error } = await sb().from('sachy').select('data').eq('id', 1).single();
+    if(error) throw error;
+    return data.data;
+  }
+  const r = await fetch(API, { cache:'no-store' });
+  if(!r.ok) throw 0;
+  return r.json();
+}
+async function backendPost(action, data, pin){
+  if(SUPABASE_URL){
+    const { data:res, error } = await sb().rpc('sachy_akce', { p_pin:pin, p_action:action, p_data:data });
+    if(error) return { status: error.message === 'pin' ? 403 : 400, json:{ error:error.message } };
+    return { status:200, json:res };
+  }
+  const r = await fetch(API, { method:'POST', headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify(Object.assign({ action, pin }, data)) });
+  return { status:r.status, json: await r.json().catch(() => ({})) };
+}
+function liveUpdates(){
+  if(!SUPABASE_URL) return;
+  try{
+    sb().channel('sachy').on('postgres_changes', { event:'UPDATE', schema:'public', table:'sachy' },
+      p => { if(!busy && p.new && p.new.data) accept(p.new.data); }).subscribe();
+  }catch(e){}
+}
+
+async function pull(){
+  if(busy) return;
+  try{
+    setSync('busy');
+    accept(await backendGet()); setSync('ok');
+  }catch(e){ setSync('err'); }
+}
+async function send(action, data = {}, retried = false){
+  busy = true; setSync('busy');
+  try{
+    const { status, json:j } = await backendPost(action, data, lsGet(KEY_PIN) || '');
+    const r = { status, ok: status === 200 };
+    if(r.status === 403){
+      if(!retried){
+        const p = prompt('🔒 Heslo pro zápis do kroniky:');
+        if(p !== null){ lsSet(KEY_PIN, p.trim()); busy = false; return send(action, data, true); }
+      }
+      throw new Error(retried ? 'Špatné heslo 🔒' : 'Bez hesla to nepůjde 🔒');
+    }
+    if(!r.ok) throw new Error(j.error || 'Server se urazil 😤');
+    accept(j); setSync('ok'); return true;
+  }catch(e){
+    setSync('err'); toast(e instanceof Error && !(e instanceof TypeError) ? e.message : 'Server nedostupný 📡'); return false;
+  }finally{ busy = false; }
+}
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const P = id => S.players.find(p => p.id === id) || { name:'Zmizelý duch', icon:'👻', color:'#ccc' };
+const num = v => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+
+function nowLocal(){
+  const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0,16);
+}
+function fmt(dt){
+  const d = new Date(dt);
+  if(isNaN(d)) return dt;
+  return d.toLocaleString('cs-CZ', { day:'numeric', month:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+/* ---------- statistiky ---------- */
+// Sázka: vítěz bere sázku od poraženého, remíza = nic se nepřesouvá
+function pointsFor(game, pid){
+  if(game.result === 'd') return 0;
+  const stake = num(S.settings.stake);
+  const winner = game.result === 'w' ? game.white : game.black;
+  return winner === pid ? stake : -stake;
+}
+const sgn = n => (n > 0 ? '+' : '') + n;
+function stats(){
+  const m = {};
+  S.players.forEach(p => m[p.id] = { p, pts:0, w:0, d:0, l:0, g:0 });
+  S.games.forEach(g => {
+    [g.white, g.black].forEach(id => {
+      const st = m[id]; if(!st) return;
+      st.g++; st.pts += pointsFor(g, id);
+      if(g.result === 'd') st.d++;
+      else if((g.result === 'w') === (id === g.white)) st.w++;
+      else st.l++;
+    });
+  });
+  return Object.values(m).sort((a,b) => b.pts - a.pts || (b.w/(b.g||1)) - (a.w/(a.g||1)) || a.l - b.l);
+}
+
+/* ---------- vykreslení ---------- */
+function chip(p, sel, dis, role){
+  return `<div class="pchip ${sel?'sel':''} ${dis?'dis':''}" data-role="${role}" data-id="${p.id}" style="background:${p.color}">
+    <span class="ico">${esc(p.icon)}</span>${esc(p.name)}</div>`;
+}
+function renderPick(){
+  if(!S.players.length){
+    const e = `<div class="empty" style="grid-column:1/-1"><span class="big">🫥</span>Zatím tu nikdo není. Stvoř hráče v Nastavení.</div>`;
+    $('#pickW').innerHTML = e; $('#pickB').innerHTML = '';
+    return;
+  }
+  $('#pickW').innerHTML = S.players.map(p => chip(p, p.id===selW, p.id===selB, 'w')).join('');
+  $('#pickB').innerHTML = S.players.map(p => chip(p, p.id===selB, p.id===selW, 'b')).join('');
+  ['w','d','b'].forEach(r => $('#r'+r).classList.toggle('on', selRes === r));
+  $('#rw').textContent = '🏳️ Vyhrál ' + (selW ? P(selW).name : 'bílý');
+  $('#rb').textContent = '🏴 Vyhrál ' + (selB ? P(selB).name : 'černý');
+}
+function renderLb(){
+  const st = stats();
+  if(!st.length){ $('#lb').innerHTML = `<div class="empty"><span class="big">🏜️</span>Prázdná poušť slávy.</div>`; return; }
+  const medal = ['🥇','🥈','🥉'];
+  $('#lb').innerHTML = st.map((x,i) => {
+    const last = i === st.length-1 && st.length > 3 && x.g > 0;
+    return `<li>
+      <div class="rank">${medal[i] || (last ? '🥔' : i+1)}</div>
+      <div class="ico" style="background:${x.p.color}">${esc(x.p.icon)}</div>
+      <div class="info"><div class="name">${esc(x.p.name)}</div>
+        <div class="wdl">${x.w} V · ${x.d} R · ${x.l} P · ${x.g} her${x.g ? ' · ' + Math.round(x.w/x.g*100) + ' %' : ''}</div></div>
+      <div class="pts" style="color:${x.pts < 0 ? '#c4002f' : x.pts > 0 ? '#007a3d' : 'inherit'}">${sgn(x.pts)}<small>${x.pts < 0 ? 'v mínusu' : 'bilance'}</small></div>
+    </li>`;
+  }).join('');
+}
+function renderDuels(){
+  const pairs = {};
+  S.games.forEach(g => {
+    const [a,b] = [g.white, g.black].sort();
+    const k = a + '|' + b;
+    const d = pairs[k] || (pairs[k] = { a, b, aw:0, bw:0, dr:0, ap:0, bp:0, n:0 });
+    d.n++; d.ap += pointsFor(g, a); d.bp += pointsFor(g, b);
+    if(g.result === 'd') d.dr++;
+    else { const win = g.result === 'w' ? g.white : g.black; win === a ? d.aw++ : d.bw++; }
+  });
+  const list = Object.values(pairs).sort((x,y) => y.n - x.n);
+  if(!list.length){ $('#duels').innerHTML = `<div class="empty"><span class="big">🕊️</span>Zatím mír. Podezřelé.</div>`; return; }
+  $('#duels').innerHTML = list.map(d => {
+    const A = P(d.a), B = P(d.b);
+    const debt = d.ap === 0 ? '🤝 vyrovnáno'
+      : d.ap > 0 ? `${esc(B.icon)} dluží ${esc(A.icon)} <b>${d.ap}</b>`
+      : `${esc(A.icon)} dluží ${esc(B.icon)} <b>${-d.ap}</b>`;
+    return `<div class="duel">
+      <div class="side"><div class="ico">${esc(A.icon)}</div><div class="nm">${esc(A.name)}</div></div>
+      <div><div class="score">${d.aw} : ${d.bw}</div><div class="sub">${d.dr} remíz · ${d.n} her<br>${debt}</div></div>
+      <div class="side"><div class="ico">${esc(B.icon)}</div><div class="nm">${esc(B.name)}</div></div>
+    </div>`;
+  }).join('');
+}
+function renderHist(){
+  const g = [...S.games].sort((a,b) => b.at.localeCompare(a.at));
+  if(!g.length){ $('#hist').innerHTML = `<div class="empty"><span class="big">📭</span>Kronika je prázdná jako kapsa pěšce.</div>`; return; }
+  $('#hist').innerHTML = g.map(x => {
+    const W = P(x.white), B = P(x.black);
+    const r = x.result === 'd' ? '🤝 remíza' : x.result === 'w' ? `🏆 ${esc(W.name)}` : `🏆 ${esc(B.name)}`;
+    return `<div class="hist"><div class="txt">
+      ${esc(W.icon)} ${esc(W.name)} <b>vs</b> ${esc(B.icon)} ${esc(B.name)}<br><b>${r}</b>
+      <div class="when">🕰️ ${fmt(x.at)}</div></div>
+      <button class="del" data-del="${x.id}" aria-label="Smazat">🗑️</button></div>`;
+  }).join('');
+}
+function renderSettings(){
+  if(document.activeElement !== $('#sStake')) $('#sStake').value = S.settings.stake;
+  $('#iconPick').innerHTML = ICONS.map(i => `<button class="${i===fIcon?'sel':''}" data-icon="${i}">${i}</button>`).join('');
+  $('#colorPick').innerHTML = COLORS.map(c => `<button class="${c===fColor?'sel':''}" data-color="${c}" style="background:${c}" aria-label="${c}"></button>`).join('');
+  $('#plist').innerHTML = S.players.length ? S.players.map(p => `
+    <div class="hist" style="background:${p.color}">
+      <div class="txt" style="font-size:20px"><span style="font-size:34px">${esc(p.icon)}</span> <b>${esc(p.name)}</b></div>
+      <button class="del" style="background:var(--sky)" data-edit="${p.id}" aria-label="Upravit">✏️</button>
+      <button class="del" data-pdel="${p.id}" aria-label="Smazat">🗑️</button>
+    </div>`).join('') : '<p>Nikdo. Ticho. Ozvěna.</p>';
+  $('#formTitle').textContent = edit ? '✏️ Úprava bytosti' : '🧙 Nový hráč';
+  $('#pSave').textContent = edit ? '💾 Uložit změny' : '➕ Stvořit hráče';
+  $('#pCancel').style.display = edit ? 'block' : 'none';
+}
+function renderAll(){ renderPick(); renderLb(); renderDuels(); renderHist(); renderSettings(); }
+
+/* ---------- efekty ---------- */
+let tt;
+function toast(t){ const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => el.classList.remove('on'), 2200); }
+function boom(icon){
+  const set = [icon,'✨','♟️','🎉','⭐','💥'];
+  for(let i=0;i<24;i++){
+    const s = document.createElement('span'); s.className = 'boom';
+    s.textContent = set[i % set.length];
+    s.style.left = '50%'; s.style.top = '50%';
+    s.style.setProperty('--x', (Math.random()*600-300)+'px');
+    s.style.setProperty('--y', (Math.random()*600-300)+'px');
+    s.style.setProperty('--r', (Math.random()*720-360)+'deg');
+    document.body.appendChild(s); setTimeout(() => s.remove(), 1400);
+  }
+}
+(function floaters(){
+  const f = $('#floaters'), ch = ['♞','♜','♝','♛','♚','♟','🥔','👁️'];
+  for(let i=0;i<9;i++){
+    const s = document.createElement('span'); s.textContent = ch[i % ch.length];
+    s.style.left = Math.random()*90 + '%'; s.style.top = Math.random()*90 + '%';
+    s.style.animationDelay = (-Math.random()*14) + 's'; f.appendChild(s);
+  }
+  setInterval(() => { $('#motto').textContent = MOTTA[Math.floor(Math.random()*MOTTA.length)]; }, 7000);
+})();
+
+/* ---------- události ---------- */
+$('#nav').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#nav button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.page').forEach(x => x.classList.toggle('on', x.id === 'p-' + b.dataset.p));
+  window.scrollTo({ top:0, behavior:'smooth' });
+});
+document.addEventListener('click', e => {
+  const c = e.target.closest('.pchip');
+  if(c){
+    if(c.dataset.role === 'w') selW = selW === c.dataset.id ? null : c.dataset.id;
+    else selB = selB === c.dataset.id ? null : c.dataset.id;
+    renderPick(); return;
+  }
+  const r = e.target.closest('[data-res]');
+  if(r){ selRes = r.dataset.res; renderPick(); return; }
+  const d = e.target.closest('[data-del]');
+  if(d){ if(confirm('Vymazat tuto partii z dějin?')) send('delGame', { id:d.dataset.del }).then(ok => ok && toast('Dějiny přepsány 🖍️')); return; }
+  const ic = e.target.closest('[data-icon]');
+  if(ic){ fIcon = ic.dataset.icon; renderSettings(); return; }
+  const co = e.target.closest('[data-color]');
+  if(co){ fColor = co.dataset.color; renderSettings(); return; }
+  const ed = e.target.closest('[data-edit]');
+  if(ed){ const p = P(ed.dataset.edit); edit = p.id; fIcon = p.icon; fColor = p.color; $('#pName').value = p.name; renderSettings(); $('#formTitle').scrollIntoView({behavior:'smooth'}); return; }
+  const pd = e.target.closest('[data-pdel]');
+  if(pd){
+    const id = pd.dataset.pdel, n = S.games.filter(g => g.white === id || g.black === id).length;
+    if(confirm(`Vymazat hráče ${P(id).name}${n ? ` i s jeho ${n} partiemi` : ''}?`)){
+      send('delPlayer', { id }).then(ok => ok && toast('Hráč odešel do éteru 👻'));
+    }
+  }
+});
+$('#save').addEventListener('click', async () => {
+  if(!selW || !selB) return toast('Vyber oba bojovníky ⚔️');
+  if(!selRes) return toast('Kdo vyhrál? Vesmír čeká 🌌');
+  const at = $('#when').value || nowLocal();
+  const icon = selRes === 'd' ? '🤝' : P(selRes === 'w' ? selW : selB).icon;
+  $('#save').disabled = true;
+  const ok = await send('addGame', { white:selW, black:selB, result:selRes, at });
+  $('#save').disabled = false;
+  if(!ok) return;
+  boom(icon); toast(WIN_TOAST[Math.floor(Math.random()*WIN_TOAST.length)]);
+  selRes = null; $('#when').value = nowLocal();
+  renderPick();
+});
+$('#sStake').addEventListener('change', () => {
+  send('setStake', { stake:num($('#sStake').value) }).then(ok => ok && toast('Sázka přepsána 💰'));
+});
+$('#pSave').addEventListener('click', async () => {
+  const name = $('#pName').value.trim();
+  if(!name) return toast('Bytost potřebuje jméno 🏷️');
+  const wasEdit = !!edit, icon = fIcon;
+  const ok = await send('savePlayer', { id:edit || '', name, icon:fIcon, color:fColor });
+  if(!ok) return;
+  if(wasEdit) toast('Bytost přetvořena 🪄');
+  else { toast(`${icon} ${name} se zrodil(a)!`); boom(icon); }
+  edit = null; $('#pName').value = '';
+  fIcon = ICONS[Math.floor(Math.random()*ICONS.length)]; fColor = COLORS[Math.floor(Math.random()*COLORS.length)];
+  renderSettings();
+});
+$('#pinIn').value = lsGet(KEY_PIN) || '';
+$('#pinSave').addEventListener('click', () => { lsSet(KEY_PIN, $('#pinIn').value.trim()); toast('Heslo uloženo 🗝️'); });
+$('#sync').addEventListener('click', pull);
+$('#pCancel').addEventListener('click', () => { edit = null; $('#pName').value = ''; renderSettings(); });
+$('#exp').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(S, null, 2)], { type:'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'sachy-' + new Date().toISOString().slice(0,10) + '.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+$('#imp').addEventListener('click', () => $('#impFile').click());
+$('#impFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    const d = JSON.parse(await f.text());
+    if(!Array.isArray(d.players) || !Array.isArray(d.games)) throw 0;
+    if(confirm('Nahradit data na serveru (pro všechny) importem?')){
+      send('import', { data:d }).then(ok => ok && toast('Data přicestovala 📦'));
+    }
+  }catch(err){ toast('Tenhle soubor mluví cizím jazykem 🤷'); }
+  e.target.value = '';
+});
+$('#wipe').addEventListener('click', () => {
+  if(confirm('Opravdu smazat VŠE pro všechny? Hráče, partie, nastavení?') && confirm('Fakt? Kůň se dívá.')){
+    send('wipe').then(ok => ok && toast('Velký třesk 💥'));
+  }
+});
+
+$('#when').value = nowLocal();
+renderAll();
+
+// první načtení ze serveru + nabídka přenosu dat ze staré verze (uložené jen v telefonu)
+pull().then(() => {
+  const old = lsGet(KEY_OLD); if(!old) return;
+  try{
+    const d = JSON.parse(old);
+    if(S.players.length || S.games.length || !(d.players||[]).length){ return; }
+    if(confirm(`V tomto telefonu jsou data ze staré verze (${d.players.length} hráčů, ${(d.games||[]).length} partií). Nahrát je na server pro všechny?`)){
+      send('import', { data:d }).then(ok => { if(ok){ lsSet(KEY_OLD, ''); toast('Stará kronika přenesena 📜'); } });
+    }
+  }catch(e){}
+});
+liveUpdates();
+// automatické obnovení každých 15 s a při návratu do aplikace
+setInterval(() => { if(!document.hidden) pull(); }, 15000);
+document.addEventListener('visibilitychange', () => { if(!document.hidden) pull(); });
+</script>
+</body>
+</html>
